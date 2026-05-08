@@ -1,6 +1,8 @@
 package com.grupo_cordillera.microservicio_kpi.service;
 
+import com.grupo_cordillera.microservicio_kpi.model.KpiDefinicion;
 import com.grupo_cordillera.microservicio_kpi.model.KpiMetrica;
+import com.grupo_cordillera.microservicio_kpi.repository.KpiDefinicionRepository;
 import com.grupo_cordillera.microservicio_kpi.repository.KpiMetricaRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -15,6 +18,18 @@ import java.util.List;
 public class KpiService {
 
     private final KpiMetricaRepository metricaRepository;
+    //Crear o Actualizar KPI
+    public KpiDefinicion guardarKpi(KpiDefinicion kpi){
+        return KpiDefinicionRepository.save(kpi);
+    }
+    //buscar KPI
+    public Optional<KpiDefinicion> obtenerId(Long id){
+        return KpiDefinicionRepository.findById(id);
+    }
+
+    public  void eliminarKpi(Long id){
+        KpiDefinicionRepository.deleteByI(id);
+    }
 
     // Nombre del circuito definido en la configuración
     @CircuitBreaker(name = "kpiService", fallbackMethod = "metodoRespaldo")
