@@ -22,7 +22,7 @@ public class KpiService {
         log.info("Consultando métricas para el KPI ID: {}", definicionId);
 
         // Aquí es donde el Circuit Breaker vigila:
-        // Si la base de datos NeonDB falla o hay mucha latencia, saltará al fallback.
+        // Si la base de datos falla o hay mucha latencia, saltará al fallback.
         return metricaRepository.findByDefinicionId(definicionId);
     }
 
@@ -34,7 +34,7 @@ public class KpiService {
     public List<KpiMetrica> metodoRespaldo(Long definicionId, Throwable t) {
         log.error("El circuito se activó debido a: {}", t.getMessage());
 
-        // Comentario equipo: Retornamos una lista vacía o datos simulados
+        //Retornamos una lista vacía o datos simulados
         // para que la interfaz de usuario no se rompa (Graceful Degradation).
         return new ArrayList<>();
     }
