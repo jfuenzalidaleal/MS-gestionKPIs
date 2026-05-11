@@ -1,5 +1,36 @@
-Microservicio de Gestión de KPIs - Grupo CordilleraEste repositorio contiene el microservicio encargado de la administración y seguimiento de los indicadores clave de desempeño (KPIs). Es un componente especializado dentro del ecosistema Grupo Cordillera.Descripción del ServicioEl microservicio gestiona el ciclo de vida de los KPIs y sus métricas. Está diseñado para integrarse con un BFF y ser expuesto a través de un API Gateway, utilizando una base de datos persistente. Stack TecnológicoJava: 17 o superiorFramework: Spring Boot 3.xBase de Datos: PostgreSQLPuerto de Servicio: 8087Librerías Clave: Spring Data JPA, Lombok, Driver JDBC.Guía de Ejecución Local1. Configuración de la Base de DatosAntes de ejecutar el servicio, asegúrate de tener creada la base de datos y configurar las credenciales en src/main/resources/application.properties:Propertiesspring.datasource.url=jdbc:mysql://localhost:3306/kpi
+# Microservicio de Gestión de KPIs - Grupo Cordillera
+
+Este repositorio contiene el microservicio encargado de la administración y seguimiento de los indicadores clave de desempeño (KPIs). Es un componente especializado dentro del ecosistema **Grupo Cordillera**.
+
+## 📝 Descripción del Servicio
+
+El microservicio gestiona el ciclo de vida de los KPIs y sus métricas. Está diseñado para integrarse con un **BFF** (Backend for Frontend) y ser expuesto a través de un **API Gateway**, utilizando una base de datos persistente para el almacenamiento de información histórica y definiciones.
+
+## 🛠 Stack Tecnológico
+
+* **Lenguaje:** Java 17 o superior
+* **Framework:** Spring Boot 3.x
+* **Base de Datos:** PostgreSQL
+* **Puerto de Servicio:** `8087`
+* **Librerías Clave:**
+    * Spring Data JPA
+    * Lombok
+    * Driver JDBC para PostgreSQL
+
+---
+
+## 🚀 Guía de Ejecución Local
+
+### 1. Configuración de la Base de Datos
+
+Antes de ejecutar el servicio, asegúrate de tener creada la base de datos y configurar las credenciales en el archivo `src/main/resources/application.properties`. 
+
+```properties
+# Configuración de conexión
+spring.datasource.url=jdbc:postgresql://localhost:5432/kpi
 spring.datasource.username=postgres
 spring.datasource.password=12345
+
+# Configuración de Hibernate
 spring.jpa.hibernate.ddl-auto=update
-2. Pasos para iniciarAbre el proyecto en tu IDE (IntelliJ recomendado).Asegúrate de que el puerto 8087 esté libre.Ejecuta la clase principal: com.grupo_cordillera.microservicio_kpi.MicroservicioKpiApplication.Documentación de EndpointsURL base: http://localhost:8087/api/kpi/definiciones todos los KPIs.POST/definiciones un nuevo KPI.PUT/definiciones/{id} Actualiza un KPI.DELETE/definiciones/{id}Elimina un KPI.GET/metricas/{id}Lista mediciones de un KPI.POST/metricas una nueva métrica.
+spring.jpa.show-sql=true
