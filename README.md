@@ -1,4 +1,5 @@
-
-
-Tu archivo Markdown (MD) está listo
-[file-tag: code-generated-file-0-1778466610555336917]
+Microservicio de Gestión de KPIs - Grupo CordilleraEste repositorio contiene el microservicio encargado de la administración y seguimiento de los indicadores clave de desempeño (KPIs). Es un componente especializado dentro del ecosistema Grupo Cordillera.Descripción del ServicioEl microservicio gestiona el ciclo de vida de los KPIs y sus métricas. Está diseñado para integrarse con un BFF y ser expuesto a través de un API Gateway, utilizando una base de datos persistente. Stack TecnológicoJava: 17 o superiorFramework: Spring Boot 3.xBase de Datos: PostgreSQLPuerto de Servicio: 8087Librerías Clave: Spring Data JPA, Lombok, Driver JDBC.Guía de Ejecución Local1. Configuración de la Base de DatosAntes de ejecutar el servicio, asegúrate de tener creada la base de datos y configurar las credenciales en src/main/resources/application.properties:Propertiesspring.datasource.url=jdbc:mysql://localhost:3306/kpi
+spring.datasource.username=postgres
+spring.datasource.password=12345
+spring.jpa.hibernate.ddl-auto=update
+2. Pasos para iniciarAbre el proyecto en tu IDE (IntelliJ recomendado).Asegúrate de que el puerto 8087 esté libre.Ejecuta la clase principal: com.grupo_cordillera.microservicio_kpi.MicroservicioKpiApplication.Documentación de EndpointsURL base: http://localhost:8087/api/kpi/definiciones todos los KPIs.POST/definiciones un nuevo KPI.PUT/definiciones/{id} Actualiza un KPI.DELETE/definiciones/{id}Elimina un KPI.GET/metricas/{id}Lista mediciones de un KPI.POST/metricas una nueva métrica.
