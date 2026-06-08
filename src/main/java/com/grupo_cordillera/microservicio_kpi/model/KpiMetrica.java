@@ -15,9 +15,8 @@ public class KpiMetrica {
     @JoinColumn(name = "definicion_id")
     private KpiDefinicion definicion;
 
-    @ManyToOne
-    @JoinColumn(name = "sucursal_id")
-    private Sucursal sucursal;
+    @Column(name = "sucursal_id")
+    private Long sucursalId;
 
     @Column(name = "valor_actual")
     private Double valorActual;

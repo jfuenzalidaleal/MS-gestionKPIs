@@ -2,10 +2,8 @@ package com.grupo_cordillera.microservicio_kpi.service;
 
 import com.grupo_cordillera.microservicio_kpi.model.KpiDefinicion;
 import com.grupo_cordillera.microservicio_kpi.model.KpiMetrica;
-import com.grupo_cordillera.microservicio_kpi.model.Sucursal;
 import com.grupo_cordillera.microservicio_kpi.repository.KpiDefinicionRepository;
 import com.grupo_cordillera.microservicio_kpi.repository.KpiMetricaRepository;
-import com.grupo_cordillera.microservicio_kpi.repository.SucursalRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +20,6 @@ public class KpiService {
 
     private final KpiMetricaRepository metricaRepository;
     private final KpiDefinicionRepository definicionRepository;
-    private final SucursalRepository sucursalRepository;
 
     // ─── KpiDefinicion ───────────────────────────────────────────────
 
@@ -73,29 +70,4 @@ public class KpiService {
         return new ArrayList<>();
     }
 
-    // ─── Sucursal ────────────────────────────────────────────────────
-
-    public List<Sucursal> listarSucursales() {
-        return sucursalRepository.findAll();
-    }
-
-    public Optional<Sucursal> obtenerSucursalPorId(Long id) {
-        return sucursalRepository.findById(id);
-    }
-
-    public Sucursal guardarSucursal(Sucursal sucursal) {
-        return sucursalRepository.save(sucursal);
-    }
-
-    public Optional<Sucursal> actualizarSucursal(Long id, Sucursal datos) {
-        return sucursalRepository.findById(id).map(suc -> {
-            suc.setNombre(datos.getNombre());
-            suc.setCiudad(datos.getCiudad());
-            return sucursalRepository.save(suc);
-        });
-    }
-
-    public void eliminarSucursal(Long id) {
-        sucursalRepository.deleteById(id);
-    }
 }
