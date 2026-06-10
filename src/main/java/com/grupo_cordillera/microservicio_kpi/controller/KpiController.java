@@ -57,6 +57,16 @@ public class KpiController {
         return kpiService.obtenerMetricasPorDefinicion(id);
     }
 
+    // 🌟 ENDPOINT CORREGIDO: Escucha en /api/kpi/acumular
+    @PutMapping("/acumular")
+    public ResponseEntity<Void> acumularProgreso(
+            @RequestParam("sucursalId") Long sucursalId,
+            @RequestParam("cantidad") Integer cantidad) {
+
+        kpiService.acumularProgresoVenta(sucursalId, cantidad);
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/metricas")
     public KpiMetrica registrarMetrica(@RequestBody KpiMetrica metrica) {
         return kpiService.guardarMetrica(metrica);

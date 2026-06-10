@@ -65,9 +65,48 @@ public class KpiService {
         metricaRepository.deleteById(id);
     }
 
+    // 🌟 MÉTODO CORREGIDO: Itera sobre todas las definiciones e impacta según la sucursal real
+    public void acumularProgresoVenta(Long sucursalId, Integer cantidad) {
+        log.info("Impactando métricas de forma selectiva para sucursal ID: {} con cantidad: {}", sucursalId, cantidad);
+
+        // 1. Buscamos todas las definiciones (metas globales) creadas en el sistema
+        List<KpiDefinicion> definiciones = definicionRepository.findAll();
+
+        if (definiciones.isEmpty()) {
+            log.warn("No se pudo acumular porque no existen Definiciones de KPIs creadas en el sistema.");
+            return;
+        }
+
+        // 2. Evaluamos la venta para cada definición existente de manera independiente
+        for (KpiDefinicion definicion : definiciones) {
+
+            // Buscamos si ya existe el registro específico para esta Sucursal y este KPI
+            Optional<KpiMetrica> metricaOpt = metricaRepository.findBySucursalIdAndDefinicionId(sucursalId, definicion.getId());
+
+            if (metricaOpt.isPresent()) {
+                // Caso A: Ya existe la combinación -> Sumamos de forma acumulativa real
+                KpiMetrica metricaExistente = metricaOpt.get();
+                double valorActual = metricaExistente.getValorActual() != null ? metricaExistente.getValorActual() : 0.0;
+                metricaExistente.setValorActual(valorActual + cantidad);
+
+                metricaRepository.save(metricaExistente);
+                log.info("Métrica ID {} (KPI: {}) actualizada. Nuevo valor: {}",
+                        metricaExistente.getId(), definicion.getNombre(), metricaExistente.getValorActual());
+            } else {
+                // Caso B: No existe registro para esta sucursal en este KPI específico -> Lo creamos limpio
+                KpiMetrica nuevaMetrica = new KpiMetrica();
+                nuevaMetrica.setSucursalId(sucursalId);
+                nuevaMetrica.setDefinicion(definicion); // 👈 Se vincula a su definición correspondiente del bucle
+                nuevaMetrica.setValorActual((double) cantidad);
+
+                metricaRepository.save(nuevaMetrica);
+                log.info("Se generó nueva fila para sucursal {} bajo el KPI: {}", sucursalId, definicion.getNombre());
+            }
+        }
+    }
+
     public List<KpiMetrica> metodoRespaldo(Long definicionId, Throwable t) {
         log.error("El circuito se activo debido a: {}", t.getMessage());
         return new ArrayList<>();
     }
-
 }
