@@ -61,9 +61,10 @@ public class KpiController {
     @PutMapping("/acumular")
     public ResponseEntity<Void> acumularProgreso(
             @RequestParam("sucursalId") Long sucursalId,
-            @RequestParam("cantidad") Integer cantidad) {
+            @RequestBody List<java.util.Map<String, Object>> productosVendidos) {
 
-        kpiService.acumularProgresoVenta(sucursalId, cantidad);
+        // Llamamos al servicio genérico que procesa mapas nativos
+        kpiService.acumularProgresoVenta(sucursalId, productosVendidos);
         return ResponseEntity.ok().build();
     }
 

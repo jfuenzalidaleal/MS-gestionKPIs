@@ -19,4 +19,8 @@ public class KpiDefinicion {
     private Double valorObjetivo;
 
     private String unidad;
+    @Column(name= "tipo_calculo")
+    private String tipoCalculo;
+    @Column(name = "categoria_id")
+    private Long categoriaId;
 }

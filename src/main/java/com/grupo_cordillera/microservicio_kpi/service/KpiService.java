@@ -41,6 +41,7 @@ public class KpiService {
             def.setDescripcion(datos.getDescripcion());
             def.setValorObjetivo(datos.getValorObjetivo());
             def.setUnidad(datos.getUnidad());
+            def.setTipoCalculo(datos.getTipoCalculo()); // 🌟 No olvides mapear el nuevo campo aquí también
             return definicionRepository.save(def);
         });
     }
@@ -65,42 +66,51 @@ public class KpiService {
         metricaRepository.deleteById(id);
     }
 
-    // 🌟 MÉTODO CORREGIDO: Itera sobre todas las definiciones e impacta según la sucursal real
-    public void acumularProgresoVenta(Long sucursalId, Integer cantidad) {
-        log.info("Impactando métricas de forma selectiva para sucursal ID: {} con cantidad: {}", sucursalId, cantidad);
+    public void acumularProgresoVenta(Long sucursalId, List<java.util.Map<String, Object>> itemsVendidos) {
+        log.info("Procesando métricas para la sucursal ID: {}. Líneas totales en venta: {}", sucursalId, itemsVendidos.size());
 
-        // 1. Buscamos todas las definiciones (metas globales) creadas en el sistema
+        // 1. Buscamos todas las definiciones de KPIs guardadas (Ventas Totales, Unidades Totales, etc.)
         List<KpiDefinicion> definiciones = definicionRepository.findAll();
 
-        if (definiciones.isEmpty()) {
-            log.warn("No se pudo acumular porque no existen Definiciones de KPIs creadas en el sistema.");
+        if (definiciones.isEmpty() || itemsVendidos == null || itemsVendidos.isEmpty()) {
             return;
         }
 
-        // 2. Evaluamos la venta para cada definición existente de manera independiente
+        // 2. Evaluamos cada indicador de forma independiente
         for (KpiDefinicion definicion : definiciones) {
+            double valorAIncrementar = 0.0;
 
-            // Buscamos si ya existe el registro específico para esta Sucursal y este KPI
+            // ─── OPCIÓN 1: Contar la venta como una sola transacción única ───
+            if ("CONTAR_TRANSACCIONES".equalsIgnoreCase(definicion.getTipoCalculo())) {
+                valorAIncrementar = 1.0; // Suma 1 independiente de los artículos de la venta
+
+                // ─── OPCIÓN 2: Sumar absolutamente todos los productos tecnológicos vendidos ───
+            } else if ("SUMAR_PRODUCTOS".equalsIgnoreCase(definicion.getTipoCalculo())) {
+                for (java.util.Map<String, Object> item : itemsVendidos) {
+                    Number cantidadNum = (Number) item.get("cantidad");
+                    if (cantidadNum != null) {
+                        // Suma directo las cantidades físicas sin importar el tipo de artículo
+                        valorAIncrementar += cantidadNum.intValue();
+                    }
+                }
+            }
+
+            if (valorAIncrementar == 0.0) continue;
+
+            // 3. Guardar o actualizar el progreso acumulado en tu tabla de métricas
             Optional<KpiMetrica> metricaOpt = metricaRepository.findBySucursalIdAndDefinicionId(sucursalId, definicion.getId());
 
             if (metricaOpt.isPresent()) {
-                // Caso A: Ya existe la combinación -> Sumamos de forma acumulativa real
                 KpiMetrica metricaExistente = metricaOpt.get();
                 double valorActual = metricaExistente.getValorActual() != null ? metricaExistente.getValorActual() : 0.0;
-                metricaExistente.setValorActual(valorActual + cantidad);
-
+                metricaExistente.setValorActual(valorActual + valorAIncrementar);
                 metricaRepository.save(metricaExistente);
-                log.info("Métrica ID {} (KPI: {}) actualizada. Nuevo valor: {}",
-                        metricaExistente.getId(), definicion.getNombre(), metricaExistente.getValorActual());
             } else {
-                // Caso B: No existe registro para esta sucursal en este KPI específico -> Lo creamos limpio
                 KpiMetrica nuevaMetrica = new KpiMetrica();
                 nuevaMetrica.setSucursalId(sucursalId);
-                nuevaMetrica.setDefinicion(definicion); // 👈 Se vincula a su definición correspondiente del bucle
-                nuevaMetrica.setValorActual((double) cantidad);
-
+                nuevaMetrica.setDefinicion(definicion);
+                nuevaMetrica.setValorActual(valorAIncrementar);
                 metricaRepository.save(nuevaMetrica);
-                log.info("Se generó nueva fila para sucursal {} bajo el KPI: {}", sucursalId, definicion.getNombre());
             }
         }
     }
