@@ -18,9 +18,13 @@ public class KpiController {
 
     // ─── KpiDefinicion ───────────────────────────────────────────────
 
+    // 🛡️ CORREGIDO POR SEGURIDAD: Ahora intercepta el Rol y la Sucursal del JWT para aislar el Dashboard
     @GetMapping("/definiciones")
-    public List<KpiDefinicion> listarDefiniciones() {
-        return kpiService.listarDefiniciones();
+    public List<KpiDefinicion> listarDefiniciones(
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestHeader(value = "X-Sucursal-Id", required = false) Long sucursalAutenticada) {
+
+        return kpiService.listarDefinicionesSeguras(userRole, sucursalAutenticada);
     }
 
     @GetMapping("/definiciones/{id}")
@@ -53,17 +57,19 @@ public class KpiController {
     // ─── KpiMetrica ──────────────────────────────────────────────────
 
     @GetMapping("/metricas/{id}")
-    public List<KpiMetrica> listarMetricas(@PathVariable Long id) {
-        return kpiService.obtenerMetricasPorDefinicion(id);
+    public List<KpiMetrica> listarMetricas(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestHeader(value = "X-Sucursal-Id", required = false) Long sucursalAutenticada) {
+
+        return kpiService.obtenerMetricasPorDefinicionSegura(id, userRole, sucursalAutenticada);
     }
 
-    // 🌟 ENDPOINT CORREGIDO: Escucha en /api/kpi/acumular
     @PutMapping("/acumular")
     public ResponseEntity<Void> acumularProgreso(
             @RequestParam("sucursalId") Long sucursalId,
             @RequestBody List<java.util.Map<String, Object>> productosVendidos) {
 
-        // Llamamos al servicio genérico que procesa mapas nativos
         kpiService.acumularProgresoVenta(sucursalId, productosVendidos);
         return ResponseEntity.ok().build();
     }
