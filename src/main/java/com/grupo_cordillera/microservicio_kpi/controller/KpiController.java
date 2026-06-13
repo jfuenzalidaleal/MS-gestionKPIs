@@ -20,11 +20,8 @@ public class KpiController {
 
     // 🛡️ CORREGIDO POR SEGURIDAD: Ahora intercepta el Rol y la Sucursal del JWT para aislar el Dashboard
     @GetMapping("/definiciones")
-    public List<KpiDefinicion> listarDefiniciones(
-            @RequestHeader(value = "X-User-Role", required = false) String userRole,
-            @RequestHeader(value = "X-Sucursal-Id", required = false) Long sucursalAutenticada) {
-
-        return kpiService.listarDefinicionesSeguras(userRole, sucursalAutenticada);
+    public List<KpiDefinicion> listarDefiniciones() {
+        return kpiService.listarTodasLasDefiniciones();
     }
 
     @GetMapping("/definiciones/{id}")

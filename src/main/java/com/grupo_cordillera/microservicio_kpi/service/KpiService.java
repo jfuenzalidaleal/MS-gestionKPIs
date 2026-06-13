@@ -196,4 +196,7 @@ public class KpiService {
         log.error("El circuito seguro de definiciones se activó debido a: {}", t.getMessage());
         return new ArrayList<>();
     }
+    public List<KpiDefinicion> listarTodasLasDefiniciones() {
+        return definicionRepository.findAll();
+    }
 }
