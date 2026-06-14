@@ -119,7 +119,7 @@ public class KpiService {
 
     // 🎯 LOGICA CORREGIDA: Asigna y calcula valores de forma segregada según el tipo de cálculo real
     public void acumularProgresoVenta(Long sucursalId, List<java.util.Map<String, Object>> itemsVendidos) {
-        log.info("Procesando métricas para la sucursal ID: {}. Líneas totales en venta: {}", sucursalId, itemsVendidos.size());
+        log.info("... Líneas totales en venta: {}", sucursalId, itemsVendidos != null ? itemsVendidos.size() : 0);
 
         List<KpiDefinicion> definiciones = definicionRepository.findAll();
 
