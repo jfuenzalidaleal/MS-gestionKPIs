@@ -1,0 +1,596 @@
+openapi: 3.0.3
+info:
+  title: MS-GestionKPIs API
+  description: |
+    Microservicio de Gestión de KPIs – **grupo_cordillera**
+
+    Permite definir KPIs, registrar métricas por sucursal y acumular progreso
+    automáticamente cuando el MS-Ventas procesa una transacción.
+
+    ### Autenticación
+    Los headers `X-User-Role` y `X-Sucursal-Id` son propagados por el **API Gateway**
+    desde los claims del JWT. El servicio los usa para aislar los datos del dashboard
+    por sucursal (si el rol **no** es `ADMIN`, solo se muestran datos de la sucursal autenticada).
+
+    ### Tipos de cálculo disponibles
+    | Valor | Comportamiento |
+    |-------|---------------|
+    | `SUMAR_MONTO` | Acumula el campo `montoTotal` de cada ítem vendido |
+    | `SUMAR_INGRESOS` | Igual que SUMAR_MONTO |
+    | `SUMAR_PRODUCTOS` | Acumula el campo `cantidad` de cada ítem vendido |
+    | `CONTAR_TRANSACCIONES` | Suma +1 por cada llamada al endpoint de acumulación |
+
+  version: "1.0.0"
+  contact:
+    name: Grupo Cordillera
+
+servers:
+  - url: http://localhost:8087
+    description: Servidor de desarrollo local
+
+tags:
+  - name: KPI Definiciones
+    description: CRUD para definir los KPIs del sistema
+  - name: KPI Métricas
+    description: Consulta y registro de valores reales por sucursal
+  - name: Acumulación Inter-Servicios
+    description: Endpoint invocado por MS-Ventas al procesar una venta
+
+paths:
+
+  # ─── KPI DEFINICIONES ──────────────────────────────────────────────
+
+  /api/kpi/definiciones:
+
+    get:
+      tags: [KPI Definiciones]
+      summary: Listar todas las definiciones de KPI
+      description: |
+        Retorna todas las definiciones registradas.
+        Los headers `X-User-Role` y `X-Sucursal-Id` permiten al servicio
+        aplicar aislamiento de dashboard (usuarios no-ADMIN solo ven los KPIs
+        que tienen métricas asociadas a su sucursal).
+      parameters:
+        - $ref: '#/components/parameters/XUserRole'
+        - $ref: '#/components/parameters/XSucursalId'
+      responses:
+        '200':
+          description: Lista de definiciones obtenida con éxito
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/KpiDefinicion'
+              examples:
+                admin_ve_todo:
+                  summary: Respuesta como ADMIN (todas las definiciones)
+                  value:
+                    - id: 1
+                      nombre: "Ventas Totales"
+                      descripcion: "Suma total del monto de ventas del período"
+                      valorObjetivo: 5000000.0
+                      unidad: "CLP"
+                      tipoCalculo: "SUMAR_MONTO"
+                      categoriaId: 1
+                    - id: 2
+                      nombre: "Cantidad de Transacciones"
+                      descripcion: "Número de tickets de venta procesados"
+                      valorObjetivo: 300.0
+                      unidad: "tickets"
+                      tipoCalculo: "CONTAR_TRANSACCIONES"
+                      categoriaId: 1
+                    - id: 3
+                      nombre: "Unidades Vendidas"
+                      descripcion: "Total de productos vendidos en unidades físicas"
+                      valorObjetivo: 1000.0
+                      unidad: "unidades"
+                      tipoCalculo: "SUMAR_PRODUCTOS"
+                      categoriaId: 2
+
+    post:
+      tags: [KPI Definiciones]
+      summary: Crear una nueva definición de KPI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KpiDefinicionInput'
+            examples:
+              nueva_definicion_monto:
+                summary: KPI financiero (monto)
+                value:
+                  nombre: "Ingresos por Categoría"
+                  descripcion: "Total de ingresos agrupados por categoría de producto"
+                  valorObjetivo: 2000000.0
+                  unidad: "CLP"
+                  tipoCalculo: "SUMAR_INGRESOS"
+                  categoriaId: 3
+              nueva_definicion_transacciones:
+                summary: KPI de conteo de tickets
+                value:
+                  nombre: "Tickets Diarios"
+                  descripcion: "Número de tickets procesados en el día"
+                  valorObjetivo: 150.0
+                  unidad: "tickets"
+                  tipoCalculo: "CONTAR_TRANSACCIONES"
+                  categoriaId: 1
+      responses:
+        '200':
+          description: Definición creada con éxito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KpiDefinicion'
+              example:
+                id: 4
+                nombre: "Ingresos por Categoría"
+                descripcion: "Total de ingresos agrupados por categoría de producto"
+                valorObjetivo: 2000000.0
+                unidad: "CLP"
+                tipoCalculo: "SUMAR_INGRESOS"
+                categoriaId: 3
+
+  /api/kpi/definiciones/{id}:
+
+    get:
+      tags: [KPI Definiciones]
+      summary: Obtener una definición por ID
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      responses:
+        '200':
+          description: Definición encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KpiDefinicion'
+              example:
+                id: 1
+                nombre: "Ventas Totales"
+                descripcion: "Suma total del monto de ventas del período"
+                valorObjetivo: 5000000.0
+                unidad: "CLP"
+                tipoCalculo: "SUMAR_MONTO"
+                categoriaId: 1
+        '404':
+          description: Definición no encontrada
+
+    put:
+      tags: [KPI Definiciones]
+      summary: Actualizar una definición existente
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KpiDefinicionInput'
+            example:
+              nombre: "Ventas Totales (Actualizado)"
+              descripcion: "Suma total del monto de ventas del período mensual"
+              valorObjetivo: 6000000.0
+              unidad: "CLP"
+              tipoCalculo: "SUMAR_MONTO"
+              categoriaId: 1
+      responses:
+        '200':
+          description: Definición actualizada con éxito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KpiDefinicion'
+              example:
+                id: 1
+                nombre: "Ventas Totales (Actualizado)"
+                descripcion: "Suma total del monto de ventas del período mensual"
+                valorObjetivo: 6000000.0
+                unidad: "CLP"
+                tipoCalculo: "SUMAR_MONTO"
+                categoriaId: 1
+        '404':
+          description: Definición no encontrada
+
+    delete:
+      tags: [KPI Definiciones]
+      summary: Eliminar una definición de KPI
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      responses:
+        '204':
+          description: Eliminada con éxito (sin contenido)
+        '404':
+          description: Definición no encontrada
+
+  # ─── KPI MÉTRICAS ──────────────────────────────────────────────────
+
+  /api/kpi/metricas/{id}:
+
+    get:
+      tags: [KPI Métricas]
+      summary: Listar métricas de una definición (con aislamiento por sucursal)
+      description: |
+        Retorna las métricas del KPI indicado.
+
+        **Lógica de aislamiento:**
+        - Si `X-User-Role` es `ADMIN` → retorna métricas de **todas** las sucursales.
+        - Si `X-User-Role` es cualquier otro valor → filtra solo la sucursal indicada en `X-Sucursal-Id`.
+        - Si no existen métricas → retorna una métrica vacía con `id: 0` y `valorActual: 0.0`.
+
+        Este endpoint incluye **Circuit Breaker** (Resilience4j): si falla, retorna lista vacía.
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+        - $ref: '#/components/parameters/XUserRole'
+        - $ref: '#/components/parameters/XSucursalId'
+      responses:
+        '200':
+          description: Métricas obtenidas con éxito
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/KpiMetrica'
+              examples:
+                admin_todas_sucursales:
+                  summary: ADMIN – métricas de todas las sucursales
+                  value:
+                    - id: 10
+                      definicion:
+                        id: 1
+                        nombre: "Ventas Totales"
+                        descripcion: "Suma total del monto de ventas del período"
+                        valorObjetivo: 5000000.0
+                        unidad: "CLP"
+                        tipoCalculo: "SUMAR_MONTO"
+                        categoriaId: 1
+                      sucursalId: 1
+                      valorActual: 1250000.0
+                      fechaRegistro: "2026-06-14T10:30:00"
+                    - id: 11
+                      definicion:
+                        id: 1
+                        nombre: "Ventas Totales"
+                        descripcion: "Suma total del monto de ventas del período"
+                        valorObjetivo: 5000000.0
+                        unidad: "CLP"
+                        tipoCalculo: "SUMAR_MONTO"
+                        categoriaId: 1
+                      sucursalId: 2
+                      valorActual: 870000.0
+                      fechaRegistro: "2026-06-14T11:00:00"
+                usuario_sucursal_filtrada:
+                  summary: USUARIO – solo su sucursal (X-Sucursal-Id = 1)
+                  value:
+                    - id: 10
+                      definicion:
+                        id: 1
+                        nombre: "Ventas Totales"
+                        descripcion: "Suma total del monto de ventas del período"
+                        valorObjetivo: 5000000.0
+                        unidad: "CLP"
+                        tipoCalculo: "SUMAR_MONTO"
+                        categoriaId: 1
+                      sucursalId: 1
+                      valorActual: 1250000.0
+                      fechaRegistro: "2026-06-14T10:30:00"
+                sin_datos_metrica_vacia:
+                  summary: Sin datos previos – retorna métrica vacía con valorActual = 0
+                  value:
+                    - id: 0
+                      definicion:
+                        id: 1
+                        nombre: "Ventas Totales"
+                        descripcion: "Suma total del monto de ventas del período"
+                        valorObjetivo: 5000000.0
+                        unidad: "CLP"
+                        tipoCalculo: "SUMAR_MONTO"
+                        categoriaId: 1
+                      sucursalId: 1
+                      valorActual: 0.0
+                      fechaRegistro: "2026-06-14T12:00:00"
+
+  /api/kpi/metricas:
+
+    post:
+      tags: [KPI Métricas]
+      summary: Registrar una métrica manualmente
+      description: Útil para cargas iniciales o correcciones de datos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KpiMetricaInput'
+            example:
+              definicion:
+                id: 1
+              sucursalId: 3
+              valorActual: 450000.0
+      responses:
+        '200':
+          description: Métrica registrada con éxito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KpiMetrica'
+              example:
+                id: 15
+                definicion:
+                  id: 1
+                  nombre: "Ventas Totales"
+                  descripcion: "Suma total del monto de ventas del período"
+                  valorObjetivo: 5000000.0
+                  unidad: "CLP"
+                  tipoCalculo: "SUMAR_MONTO"
+                  categoriaId: 1
+                sucursalId: 3
+                valorActual: 450000.0
+                fechaRegistro: "2026-06-14T13:45:00"
+
+  /api/kpi/metricas/{id}/eliminar:
+
+    delete:
+      tags: [KPI Métricas]
+      summary: Eliminar una métrica por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de la métrica a eliminar
+          schema:
+            type: integer
+            format: int64
+            example: 15
+      responses:
+        '204':
+          description: Métrica eliminada con éxito
+
+  # ─── ACUMULACIÓN INTER-SERVICIOS ──────────────────────────────────
+
+  /api/kpi/acumular:
+
+    put:
+      tags: [Acumulación Inter-Servicios]
+      summary: Acumular progreso de una venta (llamado por MS-Ventas)
+      description: |
+        Endpoint invocado por el **MS-Ventas** al completar una transacción.
+
+        El servicio recorre todas las `KpiDefinicion` activas y aplica el `tipoCalculo`:
+
+        | tipoCalculo | Acción |
+        |-------------|--------|
+        | `SUMAR_MONTO` / `SUMAR_INGRESOS` | Acumula `montoTotal` de cada ítem |
+        | `SUMAR_PRODUCTOS` | Acumula `cantidad` de cada ítem |
+        | `CONTAR_TRANSACCIONES` | Suma +1 (una venta = una llamada) |
+
+        - Si la métrica de la sucursal **no existe** → la crea con el valor inicial.
+        - Si **existe** → suma el incremento al valor actual.
+        - Incluye **Circuit Breaker** (Resilience4j).
+      parameters:
+        - name: sucursalId
+          in: query
+          required: true
+          description: ID de la sucursal que generó la venta
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      requestBody:
+        required: true
+        description: Lista de ítems vendidos en la transacción
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/ItemVendido'
+            examples:
+              venta_mixta:
+                summary: Venta con múltiples productos (afecta SUMAR_MONTO y SUMAR_PRODUCTOS)
+                value:
+                  - productoId: 101
+                    nombre: "Café Americano"
+                    cantidad: 3
+                    montoTotal: 9000.0
+                  - productoId: 205
+                    nombre: "Sándwich de Pollo"
+                    cantidad: 2
+                    montoTotal: 14000.0
+              venta_unica:
+                summary: Venta de un solo ítem (afecta CONTAR_TRANSACCIONES con +1)
+                value:
+                  - productoId: 300
+                    nombre: "Agua Mineral"
+                    cantidad: 1
+                    montoTotal: 1500.0
+      responses:
+        '200':
+          description: Progreso acumulado con éxito (sin cuerpo de respuesta)
+        '400':
+          description: Parámetros inválidos o lista de ítems vacía
+
+# ─── COMPONENTES REUTILIZABLES ──────────────────────────────────────
+
+components:
+
+  parameters:
+
+    PathId:
+      name: id
+      in: path
+      required: true
+      description: ID del recurso
+      schema:
+        type: integer
+        format: int64
+        example: 1
+
+    XUserRole:
+      name: X-User-Role
+      in: header
+      required: false
+      description: |
+        Rol del usuario autenticado, extraído del JWT por el API Gateway.
+        Valores posibles: `ADMIN`, `USUARIO`, `GERENTE`, etc.
+        Si es `ADMIN`, se retornan datos de todas las sucursales.
+      schema:
+        type: string
+        example: "ADMIN"
+
+    XSucursalId:
+      name: X-Sucursal-Id
+      in: header
+      required: false
+      description: |
+        ID de la sucursal autenticada, extraído del JWT por el API Gateway.
+        Se usa para filtrar datos cuando el rol no es ADMIN.
+      schema:
+        type: integer
+        format: int64
+        example: 1
+
+  schemas:
+
+    KpiDefinicion:
+      type: object
+      description: Definición de un KPI con su objetivo y tipo de cálculo
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+          example: 1
+        nombre:
+          type: string
+          example: "Ventas Totales"
+        descripcion:
+          type: string
+          example: "Suma total del monto de ventas del período"
+        valorObjetivo:
+          type: number
+          format: double
+          description: Meta numérica a alcanzar
+          example: 5000000.0
+        unidad:
+          type: string
+          description: Unidad de medida (CLP, tickets, unidades, etc.)
+          example: "CLP"
+        tipoCalculo:
+          type: string
+          enum:
+            - SUMAR_MONTO
+            - SUMAR_INGRESOS
+            - SUMAR_PRODUCTOS
+            - CONTAR_TRANSACCIONES
+          example: "SUMAR_MONTO"
+        categoriaId:
+          type: integer
+          format: int64
+          description: ID de la categoría a la que pertenece el KPI
+          example: 1
+
+    KpiDefinicionInput:
+      type: object
+      description: Datos para crear o actualizar una definición (sin ID)
+      required:
+        - nombre
+        - tipoCalculo
+      properties:
+        nombre:
+          type: string
+          example: "Ventas Totales"
+        descripcion:
+          type: string
+          example: "Suma total del monto de ventas del período"
+        valorObjetivo:
+          type: number
+          format: double
+          example: 5000000.0
+        unidad:
+          type: string
+          example: "CLP"
+        tipoCalculo:
+          type: string
+          enum:
+            - SUMAR_MONTO
+            - SUMAR_INGRESOS
+            - SUMAR_PRODUCTOS
+            - CONTAR_TRANSACCIONES
+          example: "SUMAR_MONTO"
+        categoriaId:
+          type: integer
+          format: int64
+          example: 1
+
+    KpiMetrica:
+      type: object
+      description: Valor real de un KPI para una sucursal específica
+      properties:
+        id:
+          type: integer
+          format: int64
+          readOnly: true
+          example: 10
+        definicion:
+          $ref: '#/components/schemas/KpiDefinicion'
+        sucursalId:
+          type: integer
+          format: int64
+          example: 1
+        valorActual:
+          type: number
+          format: double
+          description: Valor acumulado hasta el momento
+          example: 1250000.0
+        fechaRegistro:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2026-06-14T10:30:00"
+
+    KpiMetricaInput:
+      type: object
+      description: Datos para registrar una métrica manualmente
+      required:
+        - definicion
+        - sucursalId
+      properties:
+        definicion:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+              example: 1
+        sucursalId:
+          type: integer
+          format: int64
+          example: 3
+        valorActual:
+          type: number
+          format: double
+          example: 450000.0
+
+    ItemVendido:
+      type: object
+      description: Ítem de una venta enviado por MS-Ventas al acumular progreso
+      properties:
+        productoId:
+          type: integer
+          format: int64
+          example: 101
+        nombre:
+          type: string
+          example: "Café Americano"
+        cantidad:
+          type: integer
+          description: Unidades vendidas (usado por SUMAR_PRODUCTOS)
+          example: 3
+        montoTotal:
+          type: number
+          format: double
+          description: Monto bruto del ítem (usado por SUMAR_MONTO / SUMAR_INGRESOS)
+          example: 9000.0
