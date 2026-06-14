@@ -20,7 +20,13 @@ public class SecurityConfig {
                 // 2. Agregamos el acumulador a la lista blanca para que ms-ventas entre directo
                 .authorizeHttpRequests(auth -> auth
                         // 🌟 Liberamos la ruta exacta del acumulador
-                        .requestMatchers("/api/kpi/acumular", "/api/kpi/acumular/**", "/error").permitAll()
+                        .requestMatchers("/api/kpi/acumular", "/api/kpi/acumular/**", "/error","/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**",
+                                "/swagger-resources",
+                                "/swagger-resources/**",
+                                "/webjars/**").permitAll()
                         // Liberamos las rutas para que el Gateway permita al front consultar definiciones y métricas
                         .requestMatchers("/api/kpi/definiciones/**", "/api/kpi/metricas/**").permitAll()
                         .anyRequest().authenticated()
