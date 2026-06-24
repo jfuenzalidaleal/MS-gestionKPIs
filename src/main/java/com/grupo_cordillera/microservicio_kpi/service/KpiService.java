@@ -199,4 +199,5 @@ public class KpiService {
     public List<KpiDefinicion> listarTodasLasDefiniciones() {
         return definicionRepository.findAll();
     }
+    //cambios
 }
